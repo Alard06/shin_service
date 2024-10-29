@@ -2,48 +2,43 @@
 
 import xml.etree.ElementTree as ET
 from django.db import transaction
-from apps.suppliers.models import Supplier, City
+from apps.suppliers.models import Supplier, City, CompanySupplier
 
 
 def extract_suppliers_and_cities(xml_string):
-    supplier_city_map = {}  # Dictionary to hold supplier and city pairs
+    supplier_city_map = {}  # Словарь для хранения пар поставщик-город
 
-    # Parse the XML string
+    # Парсинг XML строки
     root = ET.fromstring(xml_string)
 
-    # Find all supplier elements
+    # Находим все элементы поставщиков
     for supplier in root.findall('.//supplier'):
         title = supplier.get('supplierTitle')
         city = supplier.get('city')
 
-        if title and city:  # Check that values are not empty
-            supplier_city_map[title] = city  # Map supplier to city
+        if title and city:  # Проверяем, что значения не пустые
+            supplier_city_map[title] = city  # Сопоставляем поставщика с городом
 
     return supplier_city_map
 
 
 def save_suppliers_and_cities(supplier_city_map):
-    # Create a set to hold existing city names for efficiency
-    existing_cities = set(City.objects.values_list('name', flat=True))
+    # Создаем или обновляем города и отслеживаем объекты городов
+    city_objects = {}
 
-    # Create or update cities
     for city_name in supplier_city_map.values():
-        if city_name not in existing_cities:
-            city = City(name=city_name)
-            city.save()
+        # Используем get_or_create для избежания дубликатов
+        city, created = City.objects.get_or_create(name=city_name)
+        city_objects[city_name] = city  # Сохраняем объект города для дальнейшего использования
 
-    # Create or update suppliers
+    # Создаем или обновляем поставщиков
     for supplier_name, city_name in supplier_city_map.items():
-        # Get the city object, assuming it exists now
-        city = City.objects.get(name=city_name)
+        city = city_objects.get(city_name)
 
-        # Create or update the supplier
-        Supplier.objects.update_or_create(
+        # Создаем или обновляем поставщика
+        supplier, created = Supplier.objects.update_or_create(
             name=supplier_name,
             defaults={
-                'article_number': None,  # or some default value
-                'priority': 1,           # default priority
-                'visual_priority': 3,     # default visual priority
-                'city': city              # Associate the supplier with the city object
+                'city': city  # Ассоциируем поставщика с объектом города
             }
         )

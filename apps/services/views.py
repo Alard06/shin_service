@@ -69,17 +69,18 @@ def upload_suppliers(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         filename = data.get('filename')
-
-        # Construct the full file path
         file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()  # Read the file content
                 suppliers = extract_suppliers_and_cities(content)
+                print("Extracted suppliers and cities:", suppliers)  # Debugging output
                 save_suppliers_and_cities(suppliers)
+
             return JsonResponse({'content': content})  # Return the content as JSON
         except Exception as e:
+            print("Error occurred:", str(e))  # Log the error for debugging
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
