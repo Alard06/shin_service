@@ -63,13 +63,6 @@ class UploadDataView(View):
         data = json.loads(request.body)
         filename = data.get('filename')
 
-        types = request.POST.getlist('types')  # Получаем список выбранных типов
-        availability = request.POST.get('availability')  # Получаем выбранное значение наличия
-
-        # Здесь можно обработать данные, например, сохранить их в базе данных или выполнить другую логику
-        print(f"Selected types: {types}")
-        print(f"Availability: {availability}")
-
         file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
         try:
             xml_data = await sync_to_async(self.read_file)(file_path)

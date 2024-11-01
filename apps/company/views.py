@@ -4,7 +4,7 @@ from django.contrib import messages
 
 from apps.company.forms import CompanyForm
 from apps.company.models import Company
-from apps.company.utils.processing import get_available_tires_for_company
+from apps.company.utils.processing import get_available_products_for_company
 from apps.suppliers.models import Supplier, CompanySupplier, SpecialTireSupplier, TireSupplier, DiskSupplier, \
     TruckTireSupplier, MotoTireSupplier
 
@@ -52,22 +52,33 @@ def company_detail(request, company_id):
     if request.method == 'POST':
         selected_suppliers = request.POST.getlist('suppliers')
 
-        if request.method == 'POST':
-            if 'generate_xml' in request.POST:
-                get_available_tires_for_company(company.id)
-                return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно
+        # Обработка генерации XML
+        if 'generate_xml' in request.POST:
+            # get_available_products_for_company(company.id)
+            return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно
 
-        for supplier_id in selected_suppliers:
-            supplier = get_object_or_404(Supplier, id=supplier_id)
-            priority = request.POST.get(f'priority_{supplier_id}', 1)  # Получаем приоритет для каждого поставщика
-            visual_priority = request.POST.get(f'visual_priority_{supplier_id}', 1)  # Получаем визуальный приоритет
+        # Обработка выбора поставщиков и их приоритетов
+        if selected_suppliers:
+            for supplier_id in selected_suppliers:
+                supplier = get_object_or_404(Supplier, id=supplier_id)
+                priority = request.POST.get(f'priority_{supplier_id}', 1)  # Получаем приоритет для каждого поставщика
+                visual_priority = request.POST.get(f'visual_priority_{supplier_id}', 1)  # Получаем визуальный приоритет
 
-            # Убедитесь, что приоритет и визуальный приоритет корректно сохраняются
-            CompanySupplier.objects.update_or_create(
-                company=company,
-                supplier=supplier,
-                defaults={'priority': priority, 'visual_priority': visual_priority}
-            )
+                # Убедитесь, что приоритет и визуальный приоритет корректно сохраняются
+                CompanySupplier.objects.update_or_create(
+                    company=company,
+                    supplier=supplier,
+                    defaults={'priority': priority, 'visual_priority': visual_priority}
+                )
+
+        # Обработка выбора типов и наличия
+        types = request.POST.getlist('types')  # Получаем список выбранных типов
+        availability = request.POST.get('availability')  # Получаем выбранное значение наличия
+        if types and availability:
+            get_available_products_for_company(company_id, types, availability)
+        # Здесь можно добавить логику для обработки типов и наличия, если это необходимо
+        # Например, можно сохранить эти данные в базе данных или выполнить другие действия
+
         return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно на страницу компании
 
     return render(request, 'company_detail.html', {
@@ -81,13 +92,6 @@ def company_detail(request, company_id):
         'trucks': truck,  # Truck для выбранных поставщиков
     })
 
-
-def generate_xml_view(request):
-    if request.method == 'POST':
-        generate_tire_xml()  # Вызываем функцию для генерации XML
-        return HttpResponse("XML файл успешно сгенерирован и сохранен.")
-
-    return render(request, 'generate_xml.html')
 
 
 def add_suppliers_to_company(request, company_id):

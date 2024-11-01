@@ -334,7 +334,7 @@
                 {% csrf_token %}
                 <button type="submit" name="generate_xml">Сгенерировать XML В НАЛИЧИИ</button>
             </form>
-            <form id="upload-data-form" method="post" action="{% url 'upload_data' %}">
+            <form id="upload-data-form" method="post">
                 {% csrf_token %}
                 <h3>Выберите типы:</h3>
                 <label>
