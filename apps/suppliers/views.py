@@ -23,10 +23,20 @@ def create_supplier(request):
     return render(request, 'create_supplier.html', {
         'supplier_form': supplier_form,
     })
-def edit_supplier(request, supplier_id):
-    supplier = get_object_or_404(Supplier)
 
-    return render(request, 'edit_supplier.html')
+
+def edit_supplier(request, supplier_id):
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+
+    if request.method == 'POST':
+        form = SupplierForm(request.POST, instance=supplier)
+        if form.is_valid():
+            form.save()
+            return redirect('supplier_list')  # Перенаправление на список поставщиков после сохранения
+    else:
+        form = SupplierForm(instance=supplier)
+
+    return render(request, 'edit_supplier.html', {'form': form, 'supplier': supplier})
 
 def edit_company_supplier(request, company_supplier_id):
     company_supplier = get_object_or_404(CompanySupplier, id=company_supplier_id)
@@ -44,11 +54,13 @@ def edit_company_supplier(request, company_supplier_id):
         'form': form,
         'company_supplier': company_supplier,
     })
+
+
 @require_POST
 def delete_supplier(request, supplier_id):
     supplier = get_object_or_404(Supplier, id=supplier_id)
     supplier.delete()
-    return redirect('supplier_list')
+    return redirect('company_detail')
 
 
 def supplier_detail(request, supplier_id):

@@ -1,8 +1,12 @@
+from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 
 from apps.company.forms import CompanyForm
 from apps.company.models import Company
-from apps.suppliers.models import Supplier, CompanySupplier
+from apps.company.utils.processing import get_available_tires_for_company
+from apps.suppliers.models import Supplier, CompanySupplier, SpecialTireSupplier, TireSupplier, DiskSupplier, \
+    TruckTireSupplier, MotoTireSupplier
 
 
 # Create your views here.
@@ -38,8 +42,20 @@ def company_detail(request, company_id):
     selected_supplier_ids = suppliers.values_list('supplier_id', flat=True)
     available_suppliers = all_suppliers.exclude(id__in=selected_supplier_ids)
 
+    # Получаем специальные шины для выбранных поставщиков
+    special_tires = SpecialTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    tires = TireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    moto = MotoTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    disk = DiskSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    truck = TruckTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+
     if request.method == 'POST':
         selected_suppliers = request.POST.getlist('suppliers')
+
+        if request.method == 'POST':
+            if 'generate_xml' in request.POST:
+                get_available_tires_for_company(company.id)
+                return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно
 
         for supplier_id in selected_suppliers:
             supplier = get_object_or_404(Supplier, id=supplier_id)
@@ -58,7 +74,20 @@ def company_detail(request, company_id):
         'company': company,
         'suppliers': suppliers,  # Поставщики, связанные с компанией
         'available_suppliers': available_suppliers,  # Поставщики, которые еще не выбраны
+        'special_tires': special_tires,  # Специальные шины для выбранных поставщиков
+        'tires': tires,  # Шины для выбранных поставщиков
+        'disks': disk,  # Диски для выбранных поставщиков
+        'moto': moto,  # Мото для выбранных поставщиков
+        'trucks': truck,  # Truck для выбранных поставщиков
     })
+
+
+def generate_xml_view(request):
+    if request.method == 'POST':
+        generate_tire_xml()  # Вызываем функцию для генерации XML
+        return HttpResponse("XML файл успешно сгенерирован и сохранен.")
+
+    return render(request, 'generate_xml.html')
 
 
 def add_suppliers_to_company(request, company_id):
@@ -79,7 +108,6 @@ def add_suppliers_to_company(request, company_id):
                 )
         return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно на страницу компании
 
-
     all_suppliers = Supplier.objects.all()  # Получаем всех поставщиков для выбора
     return render(request, 'add_suppliers.html', {
         'company': company,
@@ -87,12 +115,41 @@ def add_suppliers_to_company(request, company_id):
     })
 
 
-def delete_supplier(request, supplier_id, company_id):
-    # Получаем связь между поставщиком и компанией
+def delete_supplier_company(request, supplier_id, company_id):
+    # Attempt to retrieve the CompanySupplier object or return a 404 error if not found
+    print(supplier_id, company_id)
+
     company_supplier = get_object_or_404(CompanySupplier, supplier_id=supplier_id, company_id=company_id)
 
     if request.method == 'POST':
-        company_supplier.delete()  # Удаляем связь между поставщиком и компанией
-        return redirect('company_detail', company_id=company_id)  # Перенаправляем на страницу компании
+        # Log the deletion and delete the relationship
+        company_supplier.delete()
+        messages.success(request, 'Supplier relationship successfully deleted.')
+        return redirect('company_detail', company_id=company_id)
 
-    return redirect('company_detail', company_id=company_id)  # В случае GET-запроса также перенаправляем
+    # If the request method is not POST, redirect to the company detail page
+    messages.info(request, 'No changes made.')
+
+
+def edit_company(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+
+    if request.method == 'POST':
+        form = CompanyForm(request.POST, instance=company)
+        if form.is_valid():
+            form.save()
+            return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно на страницу компании
+    else:
+        form = CompanyForm(instance=company)
+
+    return render(request, 'edit_company.html', {'form': form, 'company': company})
+
+
+def delete_company(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+
+    if request.method == 'POST':
+        company.delete()
+        return redirect('company_list')  # Перенаправляем на список компаний после удаления
+
+    return render(request, 'confirm_delete.html', {'company': company})

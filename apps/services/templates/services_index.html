@@ -17,6 +17,7 @@
             <button id="download-btn" class="btn btn-info" style="display:none;" onclick="downloadFile()">Скачать файл</button>
             <button id="delete-btn" class="btn btn-danger" style="display:none;" onclick="deleteFile()">Удалить файл</button>
             <button id="upload-suppliers-btn" class="btn btn-success" style="display:none;" onclick="uploadSuppliers()">Загрузить поставщиков</button>
+            <button id="upload-data-btn" class="btn btn-warning" style="display:none;" onclick="uploadData()">Загрузить данные</button>
         </div>
         <div class="mt-4">
             <h2>Загрузить новый файл</h2>
@@ -32,18 +33,19 @@
         let selectedFileName = '';
 
         function selectFile(fileName) {
-            // Display the selected file name
+            // Отображение выбранного имени файла
             selectedFileName = fileName;
             document.getElementById('selected-file').innerText = 'Выбранный файл: ' + fileName;
             document.getElementById('download-btn').style.display = 'inline-block';
             document.getElementById('delete-btn').style.display = 'inline-block';
-            document.getElementById('upload-suppliers-btn').style.display = 'inline-block'; // Show the upload suppliers button
-            console.log('Выбранный файл:', fileName); // Print the selected file name to the console
+            document.getElementById('upload-suppliers-btn').style.display = 'inline-block';
+            document.getElementById('upload-data-btn').style.display = 'inline-block'; // Показать кнопку загрузки данных
+            console.log('Выбранный файл:', fileName); // Вывод выбранного имени файла в консоль
         }
 
         function downloadFile() {
             if (selectedFileName) {
-                window.location.href = '/media/uploads/' + selectedFileName; // Adjust the URL as needed
+                window.location.href = '/media/uploads/' + selectedFileName; // Настройте URL по мере необходимости
             }
         }
 
@@ -60,7 +62,7 @@
                 .then(response => {
                     if (response.ok) {
                         alert('Файл успешно удален.');
-                        location.reload(); // Reload the page to update the file list
+                        location.reload(); // Перезагрузить страницу для обновления списка файлов
                     } else {
                         alert('Ошибка при удалении файла.');
                     }
@@ -70,7 +72,6 @@
 
         function uploadSuppliers() {
             if (selectedFileName) {
-                // Send the selected file name to the server for processing
                 fetch('/upload-suppliers/', {
                     method: 'POST',
                     headers: {
@@ -83,16 +84,44 @@
                     if (!response.ok) {
                         throw new Error('Ошибка при загрузке файла');
                     }
-                    return response.json(); // Expecting JSON response
+                    return response.json(); // Ожидаем JSON ответ
                 })
                 .then(data => {
-                    console.log('Содержимое файла:', data.content); // Print the file content to the console
-                    alert('Содержимое файла:\n' + data.content); // Display the content in an alert
+                    console.log('Содержимое файла:', data.content); // Вывод содержимого файла в консоль
+                    alert('Содержимое файла:\n' + data.content); // Отображение содержимого в алерте
                 })
                 .catch(error => {
                     console.error('Ошибка:', error);
                     alert('Не удалось загрузить содержимое файла.');
                 });
+            }
+        }
+
+        function uploadData() {
+            if (selectedFileName) {
+                fetch('/upload-data/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ filename: selectedFileName }) // Отправляем имя файла
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка при загрузке данных');
+                    }
+                    return response.json(); // Ожидаем JSON ответ
+                })
+                .then(data => {
+                    alert('Данные успешно загружены:\n' + JSON.stringify(data)); // Отображаем ответ
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Не удалось загрузить данные.');
+                });
+            } else {
+                alert('Пожалуйста, выберите файл перед загрузкой данных.');
             }
         }
     </script>

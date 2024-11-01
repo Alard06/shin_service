@@ -1,13 +1,21 @@
+import asyncio
 import os
 import json
+import xml.etree.ElementTree as ET
+
 from django.conf import settings
 from django.shortcuts import render, redirect
+from django.views import View
 from .forms import UploadFileForm
+from asgiref.sync import sync_to_async
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .utils.suppliers import extract_suppliers_and_cities, save_suppliers_and_cities
+from .utils.data import tires_elements, disks_elements, truck_tires_element, special_tires_element, moto_tires_element
+from .utils.suppliers import extract_suppliers_and_cities, save_suppliers_and_cities, parse_tire_xml
+from ..suppliers.models import Supplier, City, TireSupplier, DiskSupplier, MotoTireSupplier, SpecialTireSupplier, \
+    TruckTireSupplier, Tire, Disk, SpecialTire, MotoTire, TruckTire
 
 
 def upload_file(request):
@@ -19,7 +27,6 @@ def upload_file(request):
     else:
         form = UploadFileForm()
     return render(request, 'upload.html', {'form': form})
-
 
 
 def upload_success(request):
@@ -41,6 +48,87 @@ def list_files(request):
     files = [f for f in files if os.path.isfile(os.path.join(uploads_dir, f))]
 
     return render(request, 'services_index.html', {'files': files})
+
+
+class UploadDataView(View):
+    suppliers = None
+    cities = None
+
+    async def dispatch(self, request, *args, **kwargs):
+        self.suppliers = await self.get_suppliers()
+        self.cities = await self.get_cities()
+        return await super().dispatch(request, *args, **kwargs)
+
+    async def post(self, request):
+        data = json.loads(request.body)
+        filename = data.get('filename')
+
+        types = request.POST.getlist('types')  # Получаем список выбранных типов
+        availability = request.POST.get('availability')  # Получаем выбранное значение наличия
+
+        # Здесь можно обработать данные, например, сохранить их в базе данных или выполнить другую логику
+        print(f"Selected types: {types}")
+        print(f"Availability: {availability}")
+
+        file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
+        try:
+            xml_data = await sync_to_async(self.read_file)(file_path)
+
+            # Удаляем старые данные
+            await sync_to_async(self.delete_old_data)()
+
+            # Парсим новые данные
+            await self.parse_tire_xml(xml_data, file_path)
+
+            return JsonResponse({'message': 'Данные успешно загружены'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def read_file(self, file_path):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+
+    async def get_suppliers(self):
+        # Используем sync_to_async для выполнения запроса к базе данных
+        suppliers = await sync_to_async(lambda: {supplier.name: supplier for supplier in Supplier.objects.all()})()
+        return suppliers
+
+    async def get_cities(self):
+        # Используем sync_to_async для выполнения запроса к базе данных
+        cities = await sync_to_async(lambda: {city.name: city for city in City.objects.all()})()
+        return cities
+
+    def delete_old_data(self):
+        # Удаляем старые данные из всех таблиц, кроме поставщиков и компаний
+        Disk.objects.all().delete()
+        DiskSupplier.objects.all().delete()
+        Tire.objects.all().delete()
+        TireSupplier.objects.all().delete()
+        MotoTire.objects.all().delete()
+        MotoTireSupplier.objects.all().delete()
+        SpecialTire.objects.all().delete()
+        SpecialTireSupplier.objects.all().delete()
+        TruckTire.objects.all().delete()
+        TruckTireSupplier.objects.all().delete()
+
+        print('Старые данные удалены')
+
+    async def parse_tire_xml(self, xml_data, path):
+        try:
+            root = ET.fromstring(xml_data)
+
+            print('start')
+            await sync_to_async(moto_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
+            await sync_to_async(special_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
+            await sync_to_async(truck_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
+            await sync_to_async(tires_elements, thread_sensitive=False)(self.suppliers, self.cities, path)
+            await sync_to_async(disks_elements, thread_sensitive=False)(self.suppliers, self.cities, root)
+            print('end')
+            print('Данные загрузились успешно!')
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
 
 
 @csrf_exempt
