@@ -168,6 +168,48 @@ class TruckTireSupplier(models.Model):
         return f"{self.truck_tire} - {self.supplier.name} - Price: {self.price}"
 
 
+class TruckDisk(models.Model):
+    """ Модель для хранения информации о дисках грузовых машин """
+    id_disk = models.CharField(max_length=100, blank=True, null=True)  # ID диска
+    brand_articul = models.CharField(max_length=255, blank=True, null=True)  # Артикул бренда
+    brand = models.CharField(max_length=100)  # Бренд диска
+    product = models.CharField(max_length=100)  # Название продукта
+    image = models.URLField()  # URL изображения
+    full_title = models.CharField(max_length=255)  # Полное название
+    model = models.CharField(max_length=100)  # Модель
+    width = models.CharField(max_length=100)  # Ширина
+    diameter = models.CharField(max_length=100)  # Диаметр
+    pcd = models.CharField(max_length=100)  # PCD (расстояние между болтами)
+    boltcount = models.CharField(max_length=100)  # Количество болтов
+    outfit = models.CharField(max_length=100)  # Вынос
+    dia = models.CharField(max_length=100)  # Диаметр центрального отверстия
+    color = models.CharField(max_length=50)  # Цвет
+    note = models.CharField(max_length=255, blank=True, null=True)  # Примечание
+    type = models.CharField(max_length=50)  # Тип (литой, штампованный и т.д.)
+
+    def __str__(self):
+        return f"{self.brand} {self.product} ({self.model})"
+
+
+class TruckDiskSupplier(models.Model):
+    """ Модель для хранения информации о поставщиках специальных шин """
+    truck_disk = models.ForeignKey(TruckDisk, on_delete=models.CASCADE)  # Внешний ключ на таблицу SpecialTire
+    articul = models.CharField(max_length=100)  # Артикул поставщика
+    price = models.CharField(max_length=100)  # Цена
+    input_price = models.CharField(max_length=100)  # Закупочная цена
+    quantity = models.IntegerField()  # Количество
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)  # Внешний ключ на таблицу Supplier
+    city = models.ForeignKey(City, on_delete=models.CASCADE)  # Внешний ключ на таблицу City
+    presence = models.CharField(max_length=100)  # Наличие
+    delivery_period_days = models.IntegerField()  # Срок доставки в днях
+    last_availability_date = models.DateTimeField()  # Дата последнего наличия
+    sale = models.CharField(max_length=20)  # Признак распродажи
+
+    def __str__(self):
+        return f"{self.truck_disk} - {self.supplier.name} - Price: {self.price}"
+
+
+
 class SpecialTire(models.Model):
     """ Модель для хранения информации о специальных шинах """
     id_special = models.CharField(max_length=100, blank=True, null=True)

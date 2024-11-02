@@ -12,10 +12,11 @@ from asgiref.sync import sync_to_async
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .utils.data import tires_elements, disks_elements, truck_tires_element, special_tires_element, moto_tires_element
+from .utils.data import tires_elements, disks_elements, truck_tires_element, special_tires_element, moto_tires_element, \
+    trucks_disks_elements
 from .utils.suppliers import extract_suppliers_and_cities, save_suppliers_and_cities, parse_tire_xml
 from ..suppliers.models import Supplier, City, TireSupplier, DiskSupplier, MotoTireSupplier, SpecialTireSupplier, \
-    TruckTireSupplier, Tire, Disk, SpecialTire, MotoTire, TruckTire
+    TruckTireSupplier, Tire, Disk, SpecialTire, MotoTire, TruckTire, TruckDiskSupplier, TruckDisk
 
 
 def upload_file(request):
@@ -103,6 +104,8 @@ class UploadDataView(View):
         SpecialTireSupplier.objects.all().delete()
         TruckTire.objects.all().delete()
         TruckTireSupplier.objects.all().delete()
+        TruckDiskSupplier.objects.all().delete()
+        TruckDisk.objects.all().delete()
 
         print('Старые данные удалены')
 
@@ -112,6 +115,7 @@ class UploadDataView(View):
 
             print('start')
             await sync_to_async(moto_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
+            await sync_to_async(trucks_disks_elements, thread_sensitive=False)(self.suppliers, self.cities, root)
             await sync_to_async(special_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
             await sync_to_async(truck_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
             await sync_to_async(tires_elements, thread_sensitive=False)(self.suppliers, self.cities, path)

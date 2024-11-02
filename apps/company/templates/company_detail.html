@@ -12,7 +12,7 @@
                aria-controls="general-info" aria-selected="true">Общая информация</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"
+            <a class="nav-link" id="data-tab" href="{% url 'company_data' company.id%}" role="tab"
                aria-controls="data" aria-selected="false">Данные</a>
         </li>
         <li class="nav-item">
@@ -45,7 +45,7 @@
                 </div>
                 <button type='submit' class="btn btn-success">Сохранить изменения</button>
             </form>
-            <form action="{% url 'delete_company' company.id %}" class='mt-3'>
+            <form action="{% url 'delete_company' company.id %}" class='mt-3' method="post">
                 {% csrf_token %}
                 <button type='submit' class="btn btn-danger">Удалить компанию</button>
             </form>
@@ -54,200 +54,13 @@
             <h2>Настройки</h2>
             <p>Здесь будут настройки компании.</p>
         </div>
-        <div class="tab-pane fade" id="data" role="tabpanel" aria-labelledby="data-tab">
-            <h2>Данные</h2>
-            <ul class="nav nav-tabs" id="dataTab" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active" id="special-tires-tab" data-toggle="tab" href="#special-tires" role="tab"
-                       aria-controls="special-tires" aria-selected="true">Специальные шины</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="tires-tab" data-toggle="tab" href="#tires" role="tab"
-                       aria-controls="tires" aria-selected="false">Шины</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="disk-tab" data-toggle="tab" href="#disk" role="tab"
-                       aria-controls="disk" aria-selected="false">Диски</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="moto-tab" data-toggle="tab" href="#moto" role="tab"
-                       aria-controls="moto" aria-selected="false">Мотошины</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="truck-tab" data-toggle="tab" href="#truck" role="tab"
-                       aria-controls="truck" aria-selected="false">Грузовые шины</a>
-                </li>
-            </ul>
-            <div class="tab-content" id="tires_data">
-                <div class="tab-pane fade show active" id="special-tires" role="tabpanel"
-                     aria-labelledby="special-tires-tab">
-                    <h2>Специальные шины</h2>
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Модель</th>
-                            <th>ОПТ</th>
-                            <th>Цена</th>
-                            <th>Остаток</th>
-                            <th>Доставка</th>
-                            <th>Поставщик</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for tire in special_tires %}
-                        <tr>
-                            <td>{{ tire.special_tire.id_special }}</td>
-                            <td>{{ tire.special_tire.full_title }}</td>
-                            <td>{{ tire.input_price }}</td>
-                            <td>{{ tire.price }}</td>
-                            <td>{{ tire.quantity }}</td>
-                            <td>{{ tire.delivery_period_days }}</td>
-                            <td>{{ tire.supplier.name }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет специальных шин для отображения.</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="tires" role="tabpanel" aria-labelledby="tires-tab">
-                    <h2>Шины</h2>
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Модель</th>
-                            <th>ОПТ</th>
-                            <th>Цена</th>
-                            <th>Остаток</th>
-                            <th>Доставка</th>
-                            <th>Поставщик</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for tire in tires %}
-                        <tr>
-                            <td>{{ tire.tire.id_tire }}</td>
-                            <td>{{ tire.tire.full_title }}</td>
-                            <td>{{ tire.input_price }}</td>
-                            <td>{{ tire.price }}</td>
-                            <td>{{ tire.quantity }}</td>
-                            <td>{{ tire.delivery_period_days }}</td>
-                            <td>{{ tire.supplier.name }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет шин для отображения.</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="disk" role="tabpanel" aria-labelledby="disk-tab">
-                    <h2>Диски</h2>
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Модель</th>
-                            <th>ОПТ</th>
-                            <th>Цена</th>
-                            <th>Остаток</th>
-                            <th>Доставка</th>
-                            <th>Поставщик</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for disk in disks %}
-                        <tr>
-                            <td>{{ disk.disk.id_disk }}</td>
-                            <td>{{ disk.disk.full_title }}</td>
-                            <td>{{ disk.input_price }}</td>
-                            <td>{{ disk.price }}</td>
-                            <td>{{ disk.quantity }}</td>
-                            <td>{{ disk.delivery_period_days }}</td>
-                            <td>{{ disk.supplier.name }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет шин для отображения.</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
 
-                <div class="tab-pane fade" id="moto" role="tabpanel" aria-labelledby="moto-tab">
-                    <h2>Мотошины</h2>
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Модель</th>
-                            <th>ОПТ</th>
-                            <th>Цена</th>
-                            <th>Остаток</th>
-                            <th>Доставка</th>
-                            <th>Поставщик</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for shina in moto %}
-                        <tr>
-                            <td>{{ moto.moto_tire.id_moto }}</td>
-                            <td>{{ moto.moto_tire.full_title }}</td>
-                            <td>{{ moto.input_price }}</td>
-                            <td>{{ moto.price }}</td>
-                            <td>{{ moto.quantity }}</td>
-                            <td>{{ moto.delivery_period_days }}</td>
-                            <td>{{ moto.supplier.name }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет шин для отображения.</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="tab-pane fade" id="truck" role="tabpanel" aria-labelledby="truck-tab">
-                    <h2>Грузовые шины</h2>
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Модель</th>
-                            <th>ОПТ</th>
-                            <th>Цена</th>
-                            <th>Остаток</th>
-                            <th>Доставка</th>
-                            <th>Поставщик</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for truck in trucks %}
-                        <tr>
-                            <td>{{ truck.truck_tire.id_truck }}</td>
-                            <td>{{ truck.truck_tire.full_title }}</td>
-                            <td>{{ truck.input_price }}</td>
-                            <td>{{ truck.price }}</td>
-                            <td>{{ truck.quantity }}</td>
-                            <td>{{ truck.delivery_period_days }}</td>
-                            <td>{{ truck.supplier.name }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">Нет шин для отображения.</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+
+
+
+
+
+
 
         <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
             <h2>Поставщики</h2>
@@ -350,6 +163,9 @@
                     <input type="checkbox" name="types" value="special_tires"> Спец. шины
                 </label><br>
                 <label>
+                    <input type="checkbox" name="types" value="truck_disks"> Грузовые диски
+                </label><br>
+                <label>
                     <input type="checkbox" name="types" value="truck_tires"> Грузовые шины
                 </label><br>
 
@@ -363,14 +179,86 @@
 
                 <button type="submit">Сгенерировать</button>
             </form>
+                    <div class="container mt-5">
+            <h1 class="text-center">Выберите файл</h1>
+            <form method="post" id="file-selection-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="list-group">
+                    {% for file in files %}
+                    <button type="button" class="list-group-item list-group-item-action"
+                            onclick="selectFile('{{ file }}')">
+                        {{ file }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </form>
+
+
+            <!-- Options for the selected file -->
+            <div id="file-options" class="mt-3" style="display: none;">
+                <h3>Выбранный файл: <span id="selected-file-name"></span></h3>
+                <form id="uniqueness-checker-form" method="post" action="{% url 'run_uniqueness_checker' company.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="file_name" id="file-name-input">
+                    <button type="submit" class="btn btn-primary">Запустить уникализатор</button>
+                </form>
+                <form id="delete-file-form" method="post" action="{% url 'delete_file' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="file_name" id="file-name-input-delete">
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+                <form id="download-file-form" method="post" action="{% url 'download_file' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="file_name" id="file-name-input-download">
+                    <input type="hidden" name="company_id" value="{{ company.id }}">
+                    <button type="submit" class="btn btn-info">Скачать</button>
+                </form>
+            </div>
+        </div>
+        </div>
+        <!-- Upload File Section -->
+        <div class="mt-3">
+            <h3>Загрузить файл</h3>
+            <form id="upload-file-form" method="post" action="{% url 'upload_file_company' company.id %}"
+                  enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="file" id="file-input" style="display: none;" onchange="updateFileName()">
+                <button type="button" class="btn btn-success" onclick="document.getElementById('file-input').click();">
+                    Загрузить файл
+                </button>
+                <span id="file-name-display" class="ml-2"></span>
+                <button type="submit" class="btn btn-primary ml-2" style="display: none;" id="submit-upload">Подтвердить
+                    загрузку
+                </button>
+            </form>
         </div>
 
 
-    </div>
-</div>
+        <script>
+            let selectedFile = '';
 
-<script>
-    document.querySelectorAll('.supplier-row').forEach(row => {
+            function selectFile(fileName) {
+                selectedFile = fileName;
+                document.getElementById('selected-file-name').innerText = fileName;
+                document.getElementById('file-name-input').value = fileName; // Set the file name for uniqueness checker
+                document.getElementById('file-name-input-delete').value = fileName; // Set the file name for deletion
+                document.getElementById('file-name-input-download').value = fileName; // Set the file name for download
+                document.getElementById('file-options').style.display = 'block'; // Show options
+            }
+
+
+            function updateFileName() {
+                const fileInput = document.getElementById('file-input');
+                const fileNameDisplay = document.getElementById('file-name-display');
+                if (fileInput.files.length > 0) {
+                    fileNameDisplay.innerText = fileInput.files[0].name;
+                    document.getElementById('submit-upload').style.display = 'inline'; // Show submit button
+                } else {
+                    fileNameDisplay.innerText = '';
+                    document.getElementById('submit-upload').style.display = 'none'; // Hide submit button
+                }
+            }
+            document.querySelectorAll('.supplier-row').forEach(row => {
         row.addEventListener('click', function () {
             const supplierId = this.getAttribute('data-supplier-id');
             const selectedSuppliersInput = document.getElementById('selected-suppliers');
@@ -391,6 +279,7 @@
             selectedSuppliersInput.value = selectedSuppliers.join(',');
         });
     });
-</script>
-
+        </script>
+    </div>
+</div>
 {% endblock %}

@@ -1,12 +1,17 @@
-from django.http import HttpResponse
+import os
+
+from django.core.files.storage import FileSystemStorage
+from django.http import HttpResponse, FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.conf import settings
 
 from apps.company.forms import CompanyForm
 from apps.company.models import Company
 from apps.company.utils.processing import get_available_products_for_company
+from apps.company.utils.uniqueizer import unique
 from apps.suppliers.models import Supplier, CompanySupplier, SpecialTireSupplier, TireSupplier, DiskSupplier, \
-    TruckTireSupplier, MotoTireSupplier
+    TruckTireSupplier, MotoTireSupplier, TruckDiskSupplier
 
 
 # Create your views here.
@@ -28,6 +33,28 @@ def create_company(request):
 
     return render(request, 'create_company.html', {'form': form})
 
+def company_data(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+    # Получаем специальные шины для выбранных поставщиков
+    suppliers = CompanySupplier.objects.filter(company=company).select_related('supplier')
+
+    special_tires = SpecialTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    tires = TireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    moto = MotoTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    disk = DiskSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    truck = TruckTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    truck_disk = TruckDiskSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+
+    return render(request, 'company-data.html', {
+        'company': company,
+        'special_tires': special_tires,  # Специальные шины для выбранных поставщиков
+        'tires': tires,  # Шины для выбранных поставщиков
+        'disks': disk,  # Диски для выбранных поставщиков
+        'moto': moto,  # Мото для выбранных поставщиков
+        'trucks': truck,  # Truck для выбранных поставщиков
+        'trucks_disk': truck_disk,  # Truck для выбранных поставщиков
+    })
+
 
 def company_detail(request, company_id):
     company = get_object_or_404(Company, id=company_id)
@@ -41,14 +68,17 @@ def company_detail(request, company_id):
     # Исключаем поставщиков, которые уже связаны с данной компанией
     selected_supplier_ids = suppliers.values_list('supplier_id', flat=True)
     available_suppliers = all_suppliers.exclude(id__in=selected_supplier_ids)
+    uploads_dir = os.path.join(settings.MEDIA_ROOT, f'uploads/{company_id}')
 
-    # Получаем специальные шины для выбранных поставщиков
-    special_tires = SpecialTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
-    tires = TireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
-    moto = MotoTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
-    disk = DiskSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
-    truck = TruckTireSupplier.objects.filter(supplier__in=suppliers.values_list('supplier', flat=True))
+    # Check if the uploads directory exists, if not, create it
+    if not os.path.exists(uploads_dir):
+        os.makedirs(uploads_dir)  # Create the directory
 
+    # List all files in the uploads directory
+    files = os.listdir(uploads_dir)
+
+    # Filter out directories, keep only files
+    files = [f for f in files if os.path.isfile(os.path.join(uploads_dir, f))]
     if request.method == 'POST':
         selected_suppliers = request.POST.getlist('suppliers')
 
@@ -85,14 +115,58 @@ def company_detail(request, company_id):
         'company': company,
         'suppliers': suppliers,  # Поставщики, связанные с компанией
         'available_suppliers': available_suppliers,  # Поставщики, которые еще не выбраны
-        'special_tires': special_tires,  # Специальные шины для выбранных поставщиков
-        'tires': tires,  # Шины для выбранных поставщиков
-        'disks': disk,  # Диски для выбранных поставщиков
-        'moto': moto,  # Мото для выбранных поставщиков
-        'trucks': truck,  # Truck для выбранных поставщиков
+        'files': files
     })
 
 
+def upload_file_company(request, company_id):
+    if request.method == 'POST' and request.FILES['file']:
+        uploaded_file = request.FILES['file']
+
+        # Define the upload directory based on company_id
+        uploads_dir = os.path.join(settings.MEDIA_ROOT, f'uploads/{company_id}')
+
+        # Create the directory if it doesn't exist
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        # Save the file in the specified directory
+        fs = FileSystemStorage(location=uploads_dir)
+        filename = fs.save(uploaded_file.name, uploaded_file)  # Save the file
+
+        return HttpResponse(f"Файл {filename} загружен успешно в {uploads_dir}.")
+    return HttpResponse("Ошибка загрузки файла.")
+
+def run_uniqueness_checker(request, company_id):
+    if request.method == 'POST':
+        file_path = os.path.join(settings.MEDIA_ROOT, f"uploads/{company_id}/{request.POST.get('file_name')}")
+        print(file_path)
+        unique(file_path, company_id)
+        return HttpResponse(f"Уникализатор запущен для файла: {file_path}")
+
+def download_file_unique(request):
+    if request.method == 'POST':
+        file_name = request.POST.get('file_name')
+        company_id = request.POST.get('company_id')  # Ensure you pass company_id if needed
+        file_path = os.path.join(settings.MEDIA_ROOT, f'uploads/{company_id}/{file_name}')
+        print(file_path)
+        if os.path.isfile(file_path):
+            response = FileResponse(open(file_path, 'rb'), as_attachment=True)
+            return response
+        else:
+            return HttpResponse("Файл не найден.")
+    return HttpResponse("Ошибка загрузки файла.")
+
+def delete_file(request, company_id):
+    if request.method == 'POST':
+        file_name = request.POST.get('file_name')
+        uploads_dir = os.path.join(settings.MEDIA_ROOT, f'uploads/{company_id}')  # Ensure company_id is defined
+        file_path = os.path.join(uploads_dir, file_name)
+
+        if os.path.isfile(file_path):
+            os.remove(file_path)  # Delete the file
+            return HttpResponse(f"Файл {file_name} удален.")
+        else:
+            return HttpResponse(f"Файл {file_name} не найден.")
 
 def add_suppliers_to_company(request, company_id):
     company = get_object_or_404(Company, id=company_id)
@@ -151,9 +225,10 @@ def edit_company(request, company_id):
 
 def delete_company(request, company_id):
     company = get_object_or_404(Company, id=company_id)
-
+    print(company)
     if request.method == 'POST':
+        print('POST')
         company.delete()
         return redirect('company_list')  # Перенаправляем на список компаний после удаления
 
-    return render(request, 'confirm_delete.html', {'company': company})
+    return render(request, 'error_delete.html', {'company': company})

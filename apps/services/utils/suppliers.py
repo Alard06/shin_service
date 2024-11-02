@@ -53,7 +53,6 @@ def save_suppliers_and_cities(supplier_city_map):
 
 
 async def parse_tire_xml(xml_data):
-    # Ваша асинхронная логика обработки XML
     try:
         root = ET.fromstring(xml_data)
         suppliers = {supplier.name: supplier for supplier in await sync_to_async(Supplier.objects.all)()}

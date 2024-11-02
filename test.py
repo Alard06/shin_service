@@ -1,33 +1,63 @@
-from lxml import etree
-from django.utils import timezone
+def process_truck_disks(root, truck_disks, company_id):
+    trucks = ET.SubElement(root, 'truckDisks')
+    for truck_disk_id, data in truck_disks.items():
+        truck_disk_element = ET.SubElement(trucks, "truckDisk",
+                                           id=truck_disk_id,
+                                           brandArticul=str(data['product'].brand_articul) if data[
+                                               'product'].brand_articul else '',
+                                           brand=data['product'].brand,
+                                           product=data['product'].product,
+                                           fullTitle=data['product'].full_title,
+                                           headline='#',
+                                           measurement=get_measurement(data['product'].width),
+                                           recommendedPrice='',
+                                           model=data['product'].model,
+                                           width=data['product'].width,
+                                           height='',
+                                           diameter=data['product'].diameter,
+                                           season='',
+                                           spike="",
+                                           lightduty='',
+                                           indexes='',
+                                           system='',
+                                           omolagation='',
+                                           mud='',
+                                           at='',
+                                           runFlatTitle='',
+                                           fr='',
+                                           xl='',
+                                           autobrand='',
+                                           pcd=str(data['product'].pcd if data['product'].pcd else ''),
+                                           boltcount=str(
+                                               data['product'].boltcount if data['product'].boltcount else ''),
+                                           drill='',
+                                           outfit='',
+                                           dia=str(data['product'].dia if data['product'].dia else ''),
+                                           color=str(data['product'].color if data['product'].color else ''),
+                                           type=str(data['product'].type if data['product'].type else ''),
+                                           numberOfPlies='',
+                                           axis='',
+                                           quadro='',
+                                           special='',
+                                           note='',
+                                           typesize='',
+                                           kit='',
+                                           layers='',
+                                           camera='',
+                                           Dioganal='',
+                                           Solid='',
+                                           Note=str(data['product'].note) if data[
+                                               'product'].note else '',
+                                           Countries='',
+                                           runflat='',
+                                           ProtectorType='',
+                                           )
 
+        sorted_suppliers = sort_suppliers(data['suppliers'], company_id)
 
-from django.db.models import Q
+        articuls, best_supplier, best_price, total_quantity, best_delivery_period_days, product_supplier = process_suppliers(
+            sorted_suppliers, data['product'], company_id, is_truck_disks=True)
 
-from apps.suppliers.models import Supplier, TireSupplier
-
-
-def get_available_tires_for_company(company_id):
-    # Получаем всех поставщиков, связанных с данной компанией
-    suppliers = Supplier.objects.filter(companies__id=company_id)
-
-    # Получаем все шины, которые в наличии у этих поставщиков
-    available_tires = TireSupplier.objects.filter(
-        supplier__in=suppliers,
-        quantity__gt=0  # Убедитесь, что количество больше 0
-    ).select_related('tire')
-
-    # Группируем шины по их идентификатору, чтобы получить одинаковые шины у разных поставщиков
-    grouped_tires = {}
-    for tire_supplier in available_tires:
-        tire_id = tire_supplier.tire.id_tire
-        if tire_id not in grouped_tires:
-            grouped_tires[tire_id] = {
-                'tire': tire_supplier.tire,
-                'suppliers': []
-            }
-        grouped_tires[tire_id]['suppliers'].append(tire_supplier)
-
-    return grouped_tires
-
-get_available_tires_for_company(1)
+        if best_supplier:
+            create_supplier_element(truck_disk_element, articuls, best_supplier, best_price, total_quantity,
+                                    best_delivery_period_days, product_supplier, is_truck_tire=True)
