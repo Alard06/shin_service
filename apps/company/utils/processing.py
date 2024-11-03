@@ -194,37 +194,35 @@ def save_tires_to_xml_availability(grouped_products, company_id, types):
     print(f"XML сохранен в файл: {name}")
 
 
-
-
 def process_tires(root, tires, company_id):
     tires_elements = ET.SubElement(root, 'tires')
+
     for tire_id, data in tires.items():
+        product = data['product']  # Cache product data for faster access
         tire_element = ET.SubElement(tires_elements, "tire",
                                      id=tire_id,
-                                     brandArticul=str(data['product'].brand_article) if data[
-                                         'product'].brand_article else '',
-                                     brand=data['product'].brand,
-                                     product=data['product'].product,
-                                     fullTitle=data['product'].full_title,
+                                     brandArticul=str(product.brand_article) if product.brand_article else '',
+                                     brand=product.brand,
+                                     product=product.product,
+                                     fullTitle=product.full_title,
                                      headline='',  # TODO
-                                     measurement=get_measurement(data['product'].width),
+                                     measurement=get_measurement(product.width),
                                      recommendedPrice='',
-                                     model=data['product'].model,
-                                     width=data['product'].width,
-                                     height=data['product'].height,
-                                     diameter=data['product'].diameter,
-                                     season=data['product'].season,
-                                     spike="да" if data['product'].spike else "нет",
-                                     lightduty="да" if data['product'].lightduty else "нет",
-                                     indexes=str(data['product'].indexes) if data['product'].indexes else '',
+                                     model=product.model,
+                                     width=product.width,
+                                     height=product.height,
+                                     diameter=product.diameter,
+                                     season=product.season,
+                                     spike="да" if product.spike else "нет",
+                                     lightduty="да" if product.lightduty else "нет",
+                                     indexes=str(product.indexes) if product.indexes else '',
                                      system='',
-                                     omolagation=str(data['product'].omolagation) if data[
-                                         'product'].omolagation else '',
-                                     mud=str(data['product'].mud) if data['product'].mud else '',
-                                     at=str(data['product'].at) if data['product'].at else '',
-                                     runFlatTitle=str(data['product'].runflat) if data['product'].runflat else '',
-                                     fr=str(data['product'].fr) if data['product'].fr else '',
-                                     xl=str(data['product'].xl) if data['product'].xl else '',
+                                     omolagation=str(product.omolagation) if product.omolagation else '',
+                                     mud=str(product.mud) if product.mud else '',
+                                     at=str(product.at) if product.at else '',
+                                     runFlatTitle=str(product.runflat) if product.runflat else '',
+                                     fr=str(product.fr) if product.fr else '',
+                                     xl=str(product.xl) if product.xl else '',
                                      autobrand="",
                                      pcd="",
                                      boltcount="",
@@ -246,18 +244,18 @@ def process_tires(root, tires, company_id):
                                      Solid="",
                                      Note="",
                                      Countries="",
-                                     runflat="да" if data['product'].runflat else "нет",
+                                     runflat="да" if product.runflat else "нет",
                                      ProtectorType=""
                                      )
+
+        # Sort suppliers and process them
         sorted_suppliers = sort_suppliers(data['suppliers'], company_id)
         articuls, best_supplier, best_price, total_quantity, best_delivery_period_days, product_supplier = process_suppliers(
-            sorted_suppliers, data['product'], company_id)
+            sorted_suppliers, product, company_id)
 
         if best_supplier:
             create_supplier_element(tire_element, articuls, best_supplier, best_price, total_quantity,
                                     best_delivery_period_days, product_supplier)
-
-
 def process_disks(root, disks, company_id):
     disks_elements = ET.SubElement(root, 'disks')
     for disk_id, data in disks.items():
