@@ -112,27 +112,36 @@ class UploadDataView(View):
     async def parse_tire_xml(self, xml_data, path):
         try:
             root = ET.fromstring(xml_data)
+            print(f'Type of root: {type(root)}')  # Проверка типа
 
             print('start')
-            # await sync_to_async(moto_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(trucks_disks_elements, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(special_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(truck_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
-            tires = await tires_elements(self.suppliers, self.cities, path)
-            # await sync_to_async(disks_elements, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # print('end')
-            # print('start')
-            # await sync_to_async(moto_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(trucks_disks_elements, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(special_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(truck_tires_element, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # await sync_to_async(tires_elements, thread_sensitive=False)(self.suppliers, self.cities, path)
-            # await sync_to_async(disks_elements, thread_sensitive=False)(self.suppliers, self.cities, root)
-            # print('end')
-            print('Данные загрузились успешно!')
+            tasks = [
+                special_tires_element(self.suppliers, self.cities, root),
+                truck_tires_element(self.suppliers, self.cities, root),
+                tires_elements(self.suppliers, self.cities, path),
+                moto_tires_element(self.suppliers, self.cities, root),
+                disks_elements(self.suppliers, self.cities, root),
+                trucks_disks_elements(self.suppliers, self.cities, root)
+            ]
 
+            await asyncio.gather(*tasks)
+            print('END')
         except Exception as e:
             print(f"An error occurred: {e}")
+            # special_run = asyncio.create_task(special_tires_element(self.suppliers, self.cities, root))
+            # truck_tires_start = asyncio.create_task(truck_tires_element(self.suppliers, self.cities, root))
+            # tires_start = asyncio.create_task(tires_elements(self.suppliers, self.cities, path))
+            # moto = asyncio.create_task(moto_tires_element(self.suppliers, self.cities, path))
+            # disks_start = asyncio.create_task(disks_elements(self.suppliers, self.cities, path))
+            # truck_disks_start = asyncio.create_task(trucks_disks_elements(self.suppliers, self.cities, path))
+            #
+            # await special_run
+            # await truck_tires_start
+            # await tires_start
+            # await moto
+            # await disks_start
+            # await truck_disks_start
+
 
 
 

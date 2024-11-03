@@ -2,100 +2,16 @@ from django.utils import timezone
 import xml.etree.ElementTree as ET
 from asgiref.sync import sync_to_async
 
+from apps.services.utils.db import get_tire_objects, tire_supplier_bulk_create, get_truck_objects, \
+    truck_tire_supplier_bulk_create, get_special_tire_objects, special_tire_supplier_bulk_create, get_moto_tire_objects, \
+    moto_tire_supplier_bulk_create, get_disk_elements_objects, disk_supplier_bulk_create, get_trucks_disks_objects, \
+    trucks_disks_supplier_bulk_create
 from apps.suppliers.models import TireSupplier, Tire, DiskSupplier, Disk, TruckTireSupplier, TruckTire, \
     SpecialTireSupplier, SpecialTire, MotoTireSupplier, MotoTire, TruckDisk, TruckDiskSupplier
 
 from lxml import etree
-# def tires_elements(suppliers, cities, file_path):
-#     print('tires_elements')
-#     tire_suppliers_to_create = []
-#     tire_objects = {}
-#
-#     # Use lxml for faster parsing
-#     for event, elem in etree.iterparse(file_path, events=('end',), tag='tire'):
-#         tire_data = {
-#             'id_tire': elem.get('id'),
-#             'brand': elem.get('brand'),
-#             'brand_article': elem.get('brandArticul'),
-#             'product': elem.get('product'),
-#             'image': elem.get('image'),
-#             'full_title': elem.get('fullTitle'),
-#             'model': elem.get('model'),
-#             'season': elem.get('season'),
-#             'spike': elem.get('spike') == 'да',
-#             'runflat': elem.get('runflat') == 'да',
-#             'lightduty': elem.get('lightduty') == 'да',
-#             'indexes': elem.get('indexes'),
-#             'width': elem.get('width'),
-#             'height': elem.get('height'),
-#             'diameter': elem.get('diameter'),
-#             'system': elem.get('system'),
-#             'omolagation': elem.get('omolagation'),
-#             'mud': elem.get('mud'),
-#             'at': elem.get('at'),
-#             'runFlatTitle': elem.get('runFlatTitle'),
-#             'fr': elem.get('fr'),
-#             'xl': elem.get('xl')
-#         }
-#
-#         tire_obj = tire_objects.get(tire_data['full_title'])
-#         if tire_obj is None:
-#             tire_obj, created = Tire.objects.get_or_create(**tire_data)
-#             tire_objects[tire_data['full_title']] = tire_obj
-#
-#         for supplier in elem.findall('supplier'):
-#             articul = supplier.get('articul')
-#             price = supplier.get('price')
-#             input_price = supplier.get('inputPrice')
-#             quantity = supplier.get('quantity')
-#             supplier_title = supplier.get('supplierTitle')
-#             city_name = supplier.get('city')
-#             presence = supplier.get('presence')
-#             delivery_period_days = supplier.get('deliveryPeriodDays')
-#             last_availability_date = supplier.get('lastAvailabilityDate')
-#             sale = supplier.get('sale') == 'yes'
-#
-#             if last_availability_date:
-#                 last_availability_date_aware = timezone.make_aware(
-#                     timezone.datetime.strptime(last_availability_date, '%d.%m.%Y %H:%M:%S')
-#                 )
-#             else:
-#                 last_availability_date_aware = None
-#
-#             supplier_obj = suppliers.get(supplier_title)
-#             city_obj = cities.get(city_name)
-#
-#             if supplier_obj and city_obj:
-#                 tire_suppliers_to_create.append(
-#                     TireSupplier(
-#                         tire=tire_obj,
-#                         articul=articul,
-#                         price=price,
-#                         input_price=input_price,
-#                         quantity=quantity,
-#                         supplier=supplier_obj,
-#                         city=city_obj,
-#                         presence=presence,
-#                         delivery_period_days=delivery_period_days,
-#                         last_availability_date=last_availability_date_aware,
-#                         sale=sale
-#                     )
-#                 )
-#         elem.clear()  # Clear the element to free memory
-#         if len(tire_suppliers_to_create) >= 50:
-#             try:
-#                 TireSupplier.objects.bulk_create(tire_suppliers_to_create)
-#                 tire_suppliers_to_create.clear()  # Clear the list after bulk insert
-#             except Exception as e:
-#                 print(f"Error during bulk_create: {e}")
-#
-#     if tire_suppliers_to_create:
-#         try:
-#             TireSupplier.objects.bulk_create(tire_suppliers_to_create)
-#         except Exception as e:
-#             print(f"Error during final bulk_create: {e}")
-#
-#     print('TIRE OK')
+
+
 async def tires_elements(suppliers, cities, file_path):
     print('tires_elements')
     tire_suppliers_to_create = []
@@ -128,12 +44,10 @@ async def tires_elements(suppliers, cities, file_path):
             'xl': elem.get('xl')
         }
 
-        print('data')
         tire_obj = tire_objects.get(tire_data['full_title'])
         if tire_obj is None:
-            tire_obj, created = Tire.objects.get_or_create(**tire_data)
+            tire_obj, created = await get_tire_objects(**tire_data)
             tire_objects[tire_data['full_title']] = tire_obj
-        print('tire obj')
         for supplier in elem.findall('supplier'):
             articul = supplier.get('articul')
             price = supplier.get('price')
@@ -175,14 +89,17 @@ async def tires_elements(suppliers, cities, file_path):
         elem.clear()  # Clear the element to free memory
         if len(tire_suppliers_to_create) >= 50:
             try:
-                TireSupplier.objects.bulk_create(tire_suppliers_to_create)
+                await tire_supplier_bulk_create(tire_suppliers_to_create)
                 tire_suppliers_to_create.clear()  # Clear the list after bulk insert
             except Exception as e:
                 print(f"Error during bulk_create: {e}")
+                print('created tire')
 
     if tire_suppliers_to_create:
         try:
-            TireSupplier.objects.bulk_create(tire_suppliers_to_create)
+
+            await tire_supplier_bulk_create(tire_suppliers_to_create)
+            print('created tire_supplier_bulk_create')
         except Exception as e:
             print(f"Error during final bulk_create: {e}")
 
@@ -201,7 +118,7 @@ async def safe_decimal_conversion(value):
     return Decimal('0.00')  # Default value for empty strings
 
 
-def trucks_disks_elements(suppliers, cities, root):
+async def trucks_disks_elements(suppliers, cities, root):
     disks_element = root.find('truckDisks')
     if disks_element is not None:
         disk_suppliers_to_create = []
@@ -231,7 +148,7 @@ def trucks_disks_elements(suppliers, cities, root):
             # Создаем объект диска только если его еще нет
             disk_obj = disk_objects.get(disk_data['full_title'])
             if disk_obj is None:
-                disk_obj, created = TruckDisk.objects.get_or_create(**disk_data)
+                disk_obj, created = await get_trucks_disks_objects(**disk_data)
                 disk_objects[disk_data['full_title']] = disk_obj
 
             # Обработка поставщиков дисков
@@ -280,13 +197,13 @@ def trucks_disks_elements(suppliers, cities, root):
             for i in range(0, len(disk_suppliers_to_create), batch_size):
                 batch = disk_suppliers_to_create[i:i + batch_size]
                 try:
-                    TruckDiskSupplier.objects.bulk_create(batch)
+                    await trucks_disks_supplier_bulk_create(batch)
                 except Exception as e:
                     ...
         print('TRUCK DISK OK')
 
 
-def disks_elements(suppliers, cities, root):
+async def disks_elements(suppliers, cities, root):
     print('trucks_disks_elements')
     disks_element = root.find('disks')
     if disks_element is not None:
@@ -317,7 +234,7 @@ def disks_elements(suppliers, cities, root):
             # Создаем объект диска только если его еще нет
             disk_obj = disk_objects.get(disk_data['full_title'])
             if disk_obj is None:
-                disk_obj, created = Disk.objects.get_or_create(**disk_data)
+                disk_obj, created = await get_disk_elements_objects(**disk_data)
                 disk_objects[disk_data['full_title']] = disk_obj
 
             # Обработка поставщиков дисков
@@ -366,15 +283,14 @@ def disks_elements(suppliers, cities, root):
             for i in range(0, len(disk_suppliers_to_create), batch_size):
                 batch = disk_suppliers_to_create[i:i + batch_size]
                 try:
-                    DiskSupplier.objects.bulk_create(batch)
-                    print(f'Batch {i // batch_size + 1} added successfully.')
+                    await disk_supplier_bulk_create(batch)
                 except Exception as e:
-                    print(f'Error adding batch {i // batch_size + 1}: {e} {batch}')
+                    ...
         print('DISK OK')
 
 
-def truck_tires_element(suppliers, cities, root):
-    print('truck_tires_element')
+async def truck_tires_element(suppliers, cities, root):
+    print('truck tires elements')
     truck_tires_element = root.find('truckTires')
     if truck_tires_element is not None:
         truck_tire_suppliers_to_create = []
@@ -405,7 +321,7 @@ def truck_tires_element(suppliers, cities, root):
             # Создаем объект грузовой шины только если его еще нет
             truck_tire_obj = truck_tire_objects.get(truck_tire_data['full_title'])
             if truck_tire_obj is None:
-                truck_tire_obj, created = TruckTire.objects.get_or_create(**truck_tire_data)
+                truck_tire_obj, created = await get_truck_objects()
                 truck_tire_objects[truck_tire_data['full_title']] = truck_tire_obj
 
             # Обработка поставщиков грузовых шин
@@ -454,14 +370,14 @@ def truck_tires_element(suppliers, cities, root):
             for i in range(0, len(truck_tire_suppliers_to_create), batch_size):
                 batch = truck_tire_suppliers_to_create[i:i + batch_size]
                 try:
-                    TruckTireSupplier.objects.bulk_create(batch)
-                    print(f'Batch {i // batch_size + 1} added successfully.')
+                    await truck_tire_supplier_bulk_create(batch)
+                    print('Successfully created')
                 except Exception as e:
-                    print(f'Error adding batch {i // batch_size + 1}: {e} {batch}')
+                    ...
         print('TRUCK OK')
 
 
-def special_tires_element(suppliers, cities, root):
+async def special_tires_element(suppliers, cities, root):
     print('special_tires_element')
     special_tires_element = root.find('specialTires')
     if special_tires_element is not None:
@@ -494,7 +410,7 @@ def special_tires_element(suppliers, cities, root):
             # Создаем объект специальной шины только если его еще нет
             special_tire_obj = special_tire_objects.get(special_tire_data['full_title'])
             if special_tire_obj is None:
-                special_tire_obj, created = SpecialTire.objects.get_or_create(**special_tire_data)
+                special_tire_obj, created = await get_special_tire_objects(**special_tire_data)
                 special_tire_objects[special_tire_data['full_title']] = special_tire_obj
 
             # Обработка поставщиков специальных шин
@@ -543,15 +459,13 @@ def special_tires_element(suppliers, cities, root):
             for i in range(0, len(special_tire_suppliers_to_create), batch_size):
                 batch = special_tire_suppliers_to_create[i:i + batch_size]
                 try:
-                    SpecialTireSupplier.objects.bulk_create(batch)
-                    print(f'Batch {i // batch_size + 1} added successfully.')
+                    await special_tire_supplier_bulk_create(batch)
                 except Exception as e:
-                    print(f'Error adding batch {i // batch_size + 1}: {e} {batch}')
-        print('SPECIAL TRUCK OK')
+                    ...
     print('SPECIAL OK')
 
 
-def moto_tires_element(suppliers, cities, root):
+async def moto_tires_element(suppliers, cities, root):
     print('moto_tires_element')
     moto_tires_element = root.find('mototires')
     if moto_tires_element is not None:
@@ -584,7 +498,7 @@ def moto_tires_element(suppliers, cities, root):
             # Создаем объект мотоциклетной шины только если его еще нет
             moto_tire_obj = moto_tire_objects.get(moto_tire_data['full_title'])
             if moto_tire_obj is None:
-                moto_tire_obj, created = MotoTire.objects.get_or_create(**moto_tire_data)
+                moto_tire_obj, created = await get_moto_tire_objects(**moto_tire_data)
                 moto_tire_objects[moto_tire_data['full_title']] = moto_tire_obj
 
             # Обработка поставщиков мотоциклетных шин
@@ -633,7 +547,7 @@ def moto_tires_element(suppliers, cities, root):
             for i in range(0, len(moto_tire_suppliers_to_create), batch_size):
                 batch = moto_tire_suppliers_to_create[i:i + batch_size]
                 try:
-                    MotoTireSupplier.objects.bulk_create(batch)
+                    await moto_tire_supplier_bulk_create(batch)
                 except Exception as e:
                     ...
         print('MOTO OK')
