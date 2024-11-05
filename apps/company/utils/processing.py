@@ -147,7 +147,8 @@ def get_available_products_for_company(company_id, types, availability):
                     'suppliers': []
                 }
             grouped_products['truck_disks'][truck_disk_id]['suppliers'].append(truck_disk_supplier)
-
+    print(grouped_products['truck_tires'])
+    print(grouped_products['tires'])
     # Сохраняем данные в XML файл
     save_tires_to_xml_availability(grouped_products, company_id, types)
     return grouped_products
@@ -183,7 +184,9 @@ def save_tires_to_xml_availability(grouped_products, company_id, types):
             process_truck_tires(root, grouped_products['truck_tires'], company_id)
 
     # Генерируем строку XML
-    xml_str = ET.tostring(root, encoding='utf-8', xml_declaration=True).decode('utf-8')
+    print(root)
+    xml_str = ET.tostring(root, encoding='utf-8').decode('utf-8')
+    print('xml_str', xml_str)
     date = datetime.now().strftime("%d-%m-%H-%M")
     name = f'Обработчик-{date}.xml'
 
@@ -198,6 +201,7 @@ def process_tires(root, tires, company_id):
     tires_elements = ET.SubElement(root, 'tires')
 
     for tire_id, data in tires.items():
+        # print(tire_id, data)
         product = data['product']  # Cache product data for faster access
         tire_element = ET.SubElement(tires_elements, "tire",
                                      id=tire_id,
@@ -322,23 +326,26 @@ def process_disks(root, disks, company_id):
 
 def process_truck_tires(root, truck_tires, company_id):
     trucks = ET.SubElement(root, 'trucks')
+
     for truck_tire_id, data in truck_tires.items():
+        # Create the truck tire element with default values for optional fields
+        # print(truck_tire_id, data)
         truck_tire_element = ET.SubElement(trucks, "truckTire",
                                            id=truck_tire_id,
                                            brandArticul=str(data['product'].brand_articul) if data[
                                                'product'].brand_articul else '',
-                                           brand=data['product'].brand,
-                                           product=data['product'].product,
-                                           fullTitle=data['product'].full_title,
+                                           brand=data['product'].brand or '',
+                                           product=data['product'].product or '',
+                                           fullTitle=data['product'].full_title or '',
                                            headline='',
-                                           measurement=get_measurement(data['product'].width),
+                                           measurement=get_measurement(data['product'].width) or '',
                                            recommendedPrice='',
-                                           model=data['product'].model,
-                                           width=data['product'].width,
-                                           height='',
-                                           diameter=data['product'].diameter,
-                                           season='',
-                                           spike="",
+                                           model=data['product'].model or '',
+                                           width=data['product'].width or '',
+                                           height=data['product'].height or '',
+                                           diameter=data['product'].diameter or '',
+                                           season=data['product'].season or '',
+                                           spike= '',
                                            lightduty="да" if data['product'].lightduty else "нет",
                                            indexes=str(data['product'].indexes) if data['product'].indexes else '',
                                            system='',
@@ -358,12 +365,9 @@ def process_truck_tires(root, truck_tires, company_id):
                                            type='',
                                            numberOfPlies=str(data['product'].number_of_plies) if data[
                                                'product'].number_of_plies else '',
-                                           axis=str(data['product'].axis) if data[
-                                               'product'].axis else '',
-                                           quadro=str(data['product'].quadro) if data[
-                                               'product'].quadro else '',
-                                           special=str(data['product'].special) if data[
-                                               'product'].special else '',
+                                           axis=str(data['product'].axis) if data['product'].axis else '',
+                                           quadro=str(data['product'].quadro) if data['product'].quadro else '',
+                                           special=str(data['product'].special) if data['product'].special else '',
                                            note='',
                                            typesize='',
                                            kit='',
@@ -375,14 +379,14 @@ def process_truck_tires(root, truck_tires, company_id):
                                            Countries='',
                                            runflat='',
                                            ProtectorType='',
-                                           Type=''
                                            )
 
+        # Sort suppliers and process them
         sorted_suppliers = sort_suppliers(data['suppliers'], company_id)
 
         articuls, best_supplier, best_price, total_quantity, best_delivery_period_days, product_supplier = process_suppliers(
             sorted_suppliers, data['product'], company_id, is_truck_tire=True)
-
+        # Create supplier element if a best supplier is found
         if best_supplier:
             create_supplier_element(truck_tire_element, articuls, best_supplier, best_price, total_quantity,
                                     best_delivery_period_days, product_supplier, is_truck_tire=True)
@@ -676,7 +680,7 @@ def process_special_tires(root, special_tires, company_id):
                                     best_delivery_period_days, product_supplier, special=True)
 def create_supplier_element(parent_element, articuls, best_supplier, best_price, total_quantity,
                             best_delivery_period_days, product_supplier=None, is_disk=False, is_truck_tire=False,
-                            moto=False, special=True):
+                            moto=False, special=False):
     presence_status = 'В наличии' if best_delivery_period_days == 0 else 'Под заказ'
     tire_type = None
     if moto:

@@ -134,13 +134,37 @@ def upload_file_company(request, company_id):
         return HttpResponse(f"Файл {filename} загружен успешно в {uploads_dir}.")
     return HttpResponse("Ошибка загрузки файла.")
 
+
 def run_uniqueness_checker(request, company_id):
     if request.method == 'POST':
         company = get_object_or_404(Company, id=company_id)
-        file_path = os.path.join(settings.MEDIA_ROOT, f"uploads/{company_id}/{request.POST.get('file_name')}")
-        print(file_path)
-        unique(file_path, company=company, company_id=company_id)
-        return HttpResponse(f"Уникализатор запущен для файла: {file_path}")
+        file_name = request.POST.get('file_name')
+        file_path = os.path.join(settings.MEDIA_ROOT, f"uploads/{company_id}/{file_name}")
+
+
+        # Get selected product types
+        product_types = request.POST.getlist('product_type')  # Retrieve all selected values
+        print("Selected product types:", product_types)  # Debug output for selected types
+
+        # Call your uniqueness function, passing the selected product types
+        path = unique(file_path, company=company, company_id=company_id, product_types=product_types)
+        print(path)
+
+        # Prepare the processed file for download
+        processed_file_path = path  # Use the path directly as it already contains the full path
+
+        # Check if the processed file exists
+        if os.path.exists(processed_file_path):
+            # Return the file response for download
+            response = FileResponse(open(processed_file_path, 'rb'), as_attachment=True,
+                                    filename=os.path.basename(processed_file_path))  # Use the original filename
+            return response
+        else:
+            print('Обработанный файл не найден. 404')
+            return HttpResponse("Обработанный файл не найден.", status=404)
+
+    return HttpResponse("Метод не поддерживается.", status=405)
+
 
 def download_file_unique(request):
     if request.method == 'POST':

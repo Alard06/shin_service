@@ -78,7 +78,7 @@ def get_images(tires_element):
     if special is not None:
         image = SpecialTire.image
         return image
-def process_tires(tires_element, company):
+def process_tires(tires_element, company, season=False):
     """Processes a single tire element and returns the formatted data."""
     offer = {}
     image = get_images(tires_element)
@@ -104,6 +104,16 @@ def process_tires(tires_element, company):
     offer['Countries'] = ' '  # #TODO: Add countries if available
     offer['runflat'] = tires_element.get('runflat')
     offer['ProtectorType'] = ' '  # #TODO: Add protector type if available
+    season_to_protector = {
+        'Всесезонный': 'all_season',
+        'Лето': 'summer',
+        'Зима': 'winter',
+        'Зима/Шипы': 'winter_spikes'
+    }
+    if season:
+        tire_season = tires_element.get('season')
+        if season_to_protector.get(tire_season) != company.protector:
+            return None  # Skip this tire if it doesn't match the protector type
 
     # Extracting supplier data
     supplier = tires_element.find('supplier')
@@ -150,15 +160,35 @@ def process_tires(tires_element, company):
     return offer
 
 
-def process_xml(file_path, company):
+def process_xml(file_path, company, product_types):
     """Processes the XML file and returns a list of offers."""
     root = read_xml(file_path)
     offers = []
-    for tires in root.findall('Tires'):
-
-        offer = process_tires(tires, company)
-        offers.append(offer)
-
+    for product in product_types:
+        if product == 'tires':
+            for tires in root.findall('Tires'):
+                offer = process_tires(tires, company, season=True)
+                offers.append(offer)
+        elif product == 'disks':
+            for disks in root.findall('Disks'):
+                offer = process_tires(disks, company)
+                offers.append(offer)
+        elif product == 'moto_tires':
+            for moto_tire in root.findall('motoTire'):
+                offer = process_tires(moto_tire, company)
+                offers.append(offer)
+        elif product == 'special_tires':
+            for special_tire in root.findall('specialTire'):
+                offer = process_tires(special_tire, company)
+                offers.append(offer)
+        elif product == 'truck_disks':
+            for truck_disk in root.findall('truckDisk'):
+                offer = process_tires(truck_disk, company)
+                offers.append(offer)
+        elif product == 'truck_tires':
+            for truck_tire in root.findall('truckTire'):
+                offer = process_tires(truck_tire, company, season=True)
+                offers.append(offer)
     return offers
 
 
@@ -167,19 +197,22 @@ def save_to_xml(offers, company_id):
     root = ET.Element('offers')
 
     for offer in offers:
-        offer_element = ET.SubElement(root, 'offer')
-        for key, value in offer.items():
-            sub_element = ET.SubElement(offer_element, key)
-            sub_element.text = str(value)
+        if offer:
+            offer_element = ET.SubElement(root, 'offer')
+            for key, value in offer.items():
+                sub_element = ET.SubElement(offer_element, key)
+                sub_element.text = str(value)
 
     tree = ET.ElementTree(root)
     xml_str = ET.tostring(root, encoding='utf-8', xml_declaration=True).decode('utf-8')
     date = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     name = f'Уникализатор-{date}.xml'
-    with open(f'media/uploads/{company_id}/{name}', 'w', encoding='utf-8') as xml_file:
+    path = f'media/uploads/{company_id}/{name}'
+    with open(path, 'w', encoding='utf-8') as xml_file:
         xml_file.write(xml_str.replace("><", ">\n<"))  # Добавляем переносы строк между элементами
+    return path
 
 
-def unique(file_path, company, company_id):
-    offers = process_xml(file_path, company)
-    save_to_xml(offers, company_id)
+def unique(file_path, company, company_id, product_types):
+    offers = process_xml(file_path, company, product_types)
+    return save_to_xml(offers, company_id)

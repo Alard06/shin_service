@@ -1,4 +1,6 @@
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.db.models import Q
 
@@ -38,6 +40,7 @@ def edit_supplier(request, supplier_id):
 
     return render(request, 'edit_supplier.html', {'form': form, 'supplier': supplier})
 
+
 def edit_company_supplier(request, company_supplier_id):
     company_supplier = get_object_or_404(CompanySupplier, id=company_supplier_id)
 
@@ -45,8 +48,8 @@ def edit_company_supplier(request, company_supplier_id):
         form = CompanySupplierForm(request.POST, instance=company_supplier)
         if form.is_valid():
             form.save()
-            # Предположим, что у вас есть URL для отображения компании, например, 'company_detail'
-            return redirect('company_detail', company_id=company_supplier.company.id)  # Замените на нужный URL
+            # Redirect to the company detail page with a query parameter for the active tab
+            return HttpResponseRedirect(f"{reverse('company_detail', kwargs={'company_id': company_supplier.company.id})}?tab=suppliers")
     else:
         form = CompanySupplierForm(instance=company_supplier)
 
@@ -54,8 +57,6 @@ def edit_company_supplier(request, company_supplier_id):
         'form': form,
         'company_supplier': company_supplier,
     })
-
-
 @require_POST
 def delete_supplier(request, supplier_id):
     supplier = get_object_or_404(Supplier, id=supplier_id)

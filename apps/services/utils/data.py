@@ -321,7 +321,7 @@ async def truck_tires_element(suppliers, cities, root):
             # Создаем объект грузовой шины только если его еще нет
             truck_tire_obj = truck_tire_objects.get(truck_tire_data['full_title'])
             if truck_tire_obj is None:
-                truck_tire_obj, created = await get_truck_objects()
+                truck_tire_obj, created = await get_truck_objects(**truck_tire_data)
                 truck_tire_objects[truck_tire_data['full_title']] = truck_tire_obj
 
             # Обработка поставщиков грузовых шин
