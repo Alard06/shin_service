@@ -78,7 +78,7 @@ def get_available_products_for_company(company_id, types, availability):
         available_truck_tires = TruckTireSupplier.objects.filter(**truck_tire_filters).select_related('truck_tire')
 
         for truck_tire_supplier in available_truck_tires:
-            truck_tire_id = truck_tire_supplier.truck_tire.id_truck  # Предполагается, что у модели TruckTire есть поле id_truck_tire
+            truck_tire_id = truck_tire_supplier.truck_tire.id_truck
             if truck_tire_id not in grouped_products['truck_tires']:
                 grouped_products['truck_tires'][truck_tire_id] = {
                     'product': truck_tire_supplier.truck_tire,

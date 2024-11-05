@@ -112,8 +112,6 @@ class UploadDataView(View):
     async def parse_tire_xml(self, xml_data, path):
         try:
             root = ET.fromstring(xml_data)
-            print(f'Type of root: {type(root)}')  # Проверка типа
-
             print('start')
             tasks = [
                 special_tires_element(self.suppliers, self.cities, root),
@@ -128,19 +126,6 @@ class UploadDataView(View):
             print('END')
         except Exception as e:
             print(f"An error occurred: {e}")
-            # special_run = asyncio.create_task(special_tires_element(self.suppliers, self.cities, root))
-            # truck_tires_start = asyncio.create_task(truck_tires_element(self.suppliers, self.cities, root))
-            # tires_start = asyncio.create_task(tires_elements(self.suppliers, self.cities, path))
-            # moto = asyncio.create_task(moto_tires_element(self.suppliers, self.cities, path))
-            # disks_start = asyncio.create_task(disks_elements(self.suppliers, self.cities, path))
-            # truck_disks_start = asyncio.create_task(trucks_disks_elements(self.suppliers, self.cities, path))
-            #
-            # await special_run
-            # await truck_tires_start
-            # await tires_start
-            # await moto
-            # await disks_start
-            # await truck_disks_start
 
 
 

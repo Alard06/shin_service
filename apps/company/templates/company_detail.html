@@ -50,17 +50,40 @@
                 <button type='submit' class="btn btn-danger">Удалить компанию</button>
             </form>
         </div>
-        <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
-            <h2>Настройки</h2>
-            <p>Здесь будут настройки компании.</p>
-        </div>
+<div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+    <h2>Настройки</h2>
+    <p>Здесь будут настройки компании.</p>
 
+            <form method="post" action="{% url 'update_company_settings' company.id %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="description">Описание:</label>
+                <textarea class="form-control" id="description" name="description" rows="4">{{ company.description }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="tags">Теги:</label>
+                <input type="text" class="form-control" id="tags" name="tags" value="{{ company.tags }}">
+                <small class="form-text text-muted">Введите теги, разделенные запятыми.</small>
+            </div>
+            <div class="form-group">
+                <label for="promotions">Акции:</label>
+                <textarea class="form-control" id="promotions" name="promotions" rows="4">{{ company.promotion }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="protector">Протектор (сейчас {{company.protector}}):</label>
+                <select class="form-control" id="protector" name="protector">
+                    <option value="">Выберите протектор</option>
+                    <option value="all_season">Всесезонный</option>
+                    <option value="summer">Лето</option>
+                    <option value="winter">Зима</option>
+                    <option value="winter_spikes">Зима/Шипы</option>
+                </select>
+            </div>
 
-
-
-
-
-
+            <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+        </form>
+    <a href="{% url 'sortable_ad' company.id %}">Сформировать объявление</a>
+</div>
 
         <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
             <h2>Поставщики</h2>
@@ -137,6 +160,7 @@
                     {% endfor %}
                     </tbody>
                 </table>
+                <button type="submit" name="add_all" class="btn btn-secondary">Добавить всех поставщиков</button>
                 <button type="submit" class="btn btn-primary">Добавить поставщиков</button>
             </form>
         </div>
@@ -179,42 +203,41 @@
 
                 <button type="submit">Сгенерировать</button>
             </form>
-                    <div class="container mt-5">
-            <h1 class="text-center">Выберите файл</h1>
-            <form method="post" id="file-selection-form" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="list-group">
-                    {% for file in files %}
-                    <button type="button" class="list-group-item list-group-item-action"
-                            onclick="selectFile('{{ file }}')">
-                        {{ file }}
-                    </button>
-                    {% endfor %}
-                </div>
-            </form>
+            <div class="container mt-5">
+                <h1 class="text-center">Выберите файл</h1>
+                <form method="post" id="file-selection-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="list-group">
+                        {% for file in files %}
+                        <button type="button" class="list-group-item list-group-item-action"
+                                onclick="selectFile('{{ file }}')">
+                            {{ file }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </form>
 
 
-            <!-- Options for the selected file -->
-            <div id="file-options" class="mt-3" style="display: none;">
-                <h3>Выбранный файл: <span id="selected-file-name"></span></h3>
-                <form id="uniqueness-checker-form" method="post" action="{% url 'run_uniqueness_checker' company.id %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="file_name" id="file-name-input">
-                    <button type="submit" class="btn btn-primary">Запустить уникализатор</button>
-                </form>
-                <form id="delete-file-form" method="post" action="{% url 'delete_file' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="file_name" id="file-name-input-delete">
-                    <button type="submit" class="btn btn-danger">Удалить</button>
-                </form>
-                <form id="download-file-form" method="post" action="{% url 'download_file' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="file_name" id="file-name-input-download">
-                    <input type="hidden" name="company_id" value="{{ company.id }}">
-                    <button type="submit" class="btn btn-info">Скачать</button>
-                </form>
+                <div id="file-options" class="mt-3" style="display: none;">
+    <h3>Выбранный файл: <span id="selected-file-name"></span></h3>
+    <form id="uniqueness-checker-form" method="post" action="{% url 'run_uniqueness_checker' company.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="file_name" id="file-name-input">
+        <button type="submit" class="btn btn-primary">Запустить уникализатор</button>
+    </form>
+    <form id="delete-file-form" method="post" action="{% url 'delete_file' %}">
+        {% csrf_token %}
+        <input type="hidden" name="file_name" id="file-name-input-delete">
+        <button type="submit" class="btn btn-danger">Удалить</button>
+    </form>
+    <form id="download-file-form" method="post" action="{% url 'download_file' %}">
+        {% csrf_token %}
+        <input type="hidden" name="file_name" id="file-name-input-download">
+        <input type="hidden" name="company_id" value="{{ company.id }}">
+        <button type="submit" class="btn btn-info">Скачать</button>
+    </form>
+</div>
             </div>
-        </div>
         </div>
         <!-- Upload File Section -->
         <div class="mt-3">
@@ -235,16 +258,23 @@
 
 
         <script>
+            document.getElementById('add-all-suppliers').addEventListener('click', function () {
+                const supplierIds = [];
+                document.querySelectorAll('.supplier-row').forEach(row => {
+                    supplierIds.push(row.getAttribute('data-supplier-id'));
+                });
+                document.getElementById('selected-suppliers').value = supplierIds.join(',');
+                alert('Все поставщики добавлены!');
+            });
             let selectedFile = '';
 
-            function selectFile(fileName) {
-                selectedFile = fileName;
-                document.getElementById('selected-file-name').innerText = fileName;
-                document.getElementById('file-name-input').value = fileName; // Set the file name for uniqueness checker
-                document.getElementById('file-name-input-delete').value = fileName; // Set the file name for deletion
-                document.getElementById('file-name-input-download').value = fileName; // Set the file name for download
-                document.getElementById('file-options').style.display = 'block'; // Show options
-            }
+    function selectFile(fileName) {
+        document.getElementById('selected-file-name').innerText = fileName;
+        document.getElementById('file-name-input').value = fileName; // Set the file name for uniqueness checker
+        document.getElementById('file-name-input-delete').value = fileName; // Set the file name for deletion
+        document.getElementById('file-name-input-download').value = fileName; // Set the file name for download
+        document.getElementById('file-options').style.display = 'block'; // Show options
+    }
 
 
             function updateFileName() {
@@ -258,28 +288,30 @@
                     document.getElementById('submit-upload').style.display = 'none'; // Hide submit button
                 }
             }
+
             document.querySelectorAll('.supplier-row').forEach(row => {
-        row.addEventListener('click', function () {
-            const supplierId = this.getAttribute('data-supplier-id');
-            const selectedSuppliersInput = document.getElementById('selected-suppliers');
-            let selectedSuppliers = selectedSuppliersInput.value ? selectedSuppliersInput.value.split(',') : [];
+                row.addEventListener('click', function () {
+                    const supplierId = this.getAttribute('data-supplier-id');
+                    const selectedSuppliersInput = document.getElementById('selected-suppliers');
+                    let selectedSuppliers = selectedSuppliersInput.value ? selectedSuppliersInput.value.split(',') : [];
 
-            // Проверяем, выбран ли уже поставщик
-            if (selectedSuppliers.includes(supplierId)) {
-                // Удаляем поставщика из списка, если он уже выбран
-                selectedSuppliers = selectedSuppliers.filter(id => id !== supplierId);
-                this.classList.remove('table-active'); // Убираем выделение
-            } else {
-                // Добавляем поставщика в список
-                selectedSuppliers.push(supplierId);
-                this.classList.add('table-active'); // Добавляем выделение
-            }
+                    // Проверяем, выбран ли уже поставщик
+                    if (selectedSuppliers.includes(supplierId)) {
+                        // Удаляем поставщика из списка, если он уже выбран
+                        selectedSuppliers = selectedSuppliers.filter(id => id !== supplierId);
+                        this.classList.remove('table-active'); // Убираем выделение
+                    } else {
+                        // Добавляем поставщика в список
+                        selectedSuppliers.push(supplierId);
+                        this.classList.add('table-active'); // Добавляем выделение
+                    }
 
-            // Обновляем скрытое поле с выбранными поставщиками
-            selectedSuppliersInput.value = selectedSuppliers.join(',');
-        });
-    });
+                    // Обновляем скрытое поле с выбранными поставщиками
+                    selectedSuppliersInput.value = selectedSuppliers.join(',');
+                });
+            });
         </script>
+
     </div>
 </div>
 {% endblock %}

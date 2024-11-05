@@ -106,8 +106,6 @@ def company_detail(request, company_id):
         availability = request.POST.get('availability')  # Получаем выбранное значение наличия
         if types and availability:
             get_available_products_for_company(company_id, types, availability)
-        # Здесь можно добавить логику для обработки типов и наличия, если это необходимо
-        # Например, можно сохранить эти данные в базе данных или выполнить другие действия
 
         return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно на страницу компании
 
@@ -138,9 +136,10 @@ def upload_file_company(request, company_id):
 
 def run_uniqueness_checker(request, company_id):
     if request.method == 'POST':
+        company = get_object_or_404(Company, id=company_id)
         file_path = os.path.join(settings.MEDIA_ROOT, f"uploads/{company_id}/{request.POST.get('file_name')}")
         print(file_path)
-        unique(file_path, company_id)
+        unique(file_path, company=company, company_id=company_id)
         return HttpResponse(f"Уникализатор запущен для файла: {file_path}")
 
 def download_file_unique(request):
@@ -168,6 +167,7 @@ def delete_file(request, company_id):
         else:
             return HttpResponse(f"Файл {file_name} не найден.")
 
+
 def add_suppliers_to_company(request, company_id):
     company = get_object_or_404(Company, id=company_id)
 
@@ -176,14 +176,24 @@ def add_suppliers_to_company(request, company_id):
         selected_suppliers = request.POST.get('suppliers', '').split(',')
         priority = request.POST.get('priority')
 
-        for supplier_id in selected_suppliers:
-            if supplier_id:  # Проверяем, что идентификатор не пустой
-                supplier = get_object_or_404(Supplier, id=supplier_id)
+        if 'add_all' in request.POST:  # Проверяем, была ли нажата кнопка "Добавить всех поставщиков"
+            all_suppliers = Supplier.objects.all()  # Получаем всех поставщиков
+            for supplier in all_suppliers:
                 CompanySupplier.objects.update_or_create(
                     company=company,
                     supplier=supplier,
                     defaults={'priority': priority}
                 )
+        else:  # Обработка выбранных поставщиков
+            for supplier_id in selected_suppliers:
+                if supplier_id:  # Проверяем, что идентификатор не пустой
+                    supplier = get_object_or_404(Supplier, id=supplier_id)
+                    CompanySupplier.objects.update_or_create(
+                        company=company,
+                        supplier=supplier,
+                        defaults={'priority': priority}
+                    )
+
         return redirect('company_detail', company_id=company.id)  # Перенаправляем обратно на страницу компании
 
     all_suppliers = Supplier.objects.all()  # Получаем всех поставщиков для выбора
@@ -191,8 +201,6 @@ def add_suppliers_to_company(request, company_id):
         'company': company,
         'all_suppliers': all_suppliers,
     })
-
-
 def delete_supplier_company(request, supplier_id, company_id):
     # Attempt to retrieve the CompanySupplier object or return a 404 error if not found
     print(supplier_id, company_id)
@@ -232,3 +240,45 @@ def delete_company(request, company_id):
         return redirect('company_list')  # Перенаправляем на список компаний после удаления
 
     return render(request, 'error_delete.html', {'company': company})
+
+
+def update_company_settings(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+
+    if request.method == 'POST':
+        # Получаем данные из формы
+        description = request.POST.get('description')
+        tags = request.POST.get('tags')
+        promotions = request.POST.get('promotions')
+        protector = request.POST.get('protector')
+
+        # Обновляем поля компании
+        company.description = description
+        company.tags = tags  # Сохраняем теги как строку
+        company.promotion = promotions
+        company.protector = protector
+        company.save()  # Сохраняем изменения
+
+        return redirect('company_detail', company_id=company.id)  # Перенаправляем на страницу компании
+
+    return render(request, 'settings.html', {
+        'company': company,
+    })
+
+
+def save_ad_order(request, company_id):
+    if request.method == 'POST':
+        order = request.POST.get('order')  # Get the order from the form
+        if order:
+            # Split the order string into a list
+            print("Received order:", order)  # Debugging statement
+            # Here you can save the order to the database or process it as needed
+            company = Company.objects.get(id=company_id)
+            company.ad_order = order  # Assuming you have a field to store this
+            company.save()
+            return redirect('company_detail', company_id=company.id)
+    return HttpResponse("Invalid request", status=400)
+
+def sortable_ad_view(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+    return render(request, 'sortable_ad.html', {'company': company})

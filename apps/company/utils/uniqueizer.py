@@ -78,7 +78,7 @@ def get_images(tires_element):
     if special is not None:
         image = SpecialTire.image
         return image
-def process_tires(tires_element):
+def process_tires(tires_element, company):
     """Processes a single tire element and returns the formatted data."""
     offer = {}
     image = get_images(tires_element)
@@ -108,7 +108,7 @@ def process_tires(tires_element):
     # Extracting supplier data
     supplier = tires_element.find('supplier')
     if supplier is not None:
-        offer['supplier-articul'] = supplier.get('supplierTitle')  # Default to empty string
+        offer['supplier-articul'] = supplier.get('supplierTitle', '')  # Default to empty string
         offer['supplier-supplierTitle'] = supplier.get('supplierTitle')
         offer['supplier-quantity'] = supplier.get('quantity')
         offer['supplier-price'] = supplier.get('price')
@@ -122,28 +122,41 @@ def process_tires(tires_element):
         offer['supplier-lastAvailabilityDate'] = supplier.get('lastAvailabilityDate')
         offer['supplier-sale'] = supplier.get('sale')
         offer['supplier-year'] = ' '  # #TODO: Add year if available
-        offer[
-            'supplier-description'] = f'''Шины в наличии в Иркутске! Успейте заказать до повышения цен! Доставка по России, передадим в любую удобную Вам транспортную компанию. Выдача товара только в будние, выходные по согласованию с администратором магазина. До оформления сделки или приезда в магазин просим связаться с нами для уточнения наличия необходимых автошин и дисков. Высокий сезонный спрос может изменить ассортимент на складе.   
 
-{supplier.get('supplierTitle')}
-
-{generate_tire_size_string(tires_element.get('width'), tires_element.get('height'), tires_element.get('diameter'))}
-
-Купить шины {tires_element.get('brand')}
-
-            '''  # Static description
+    # Construct the supplier description based on ad_order
+    ad_order = company.ad_order.split(',') if company.ad_order else []
+    description_parts = []
+    print(supplier.get('articul'))
+    for field in ad_order:
+        if field == 'supplier_article':
+            description_parts.append(f"{supplier.get('articul', '')}")
+        elif field == 'sizes':
+            description_parts.append(f"{generate_tire_size_string(offer.get('width'), offer.get('height'), offer.get('diameter'))}")
+        elif field == 'tire_description':
+            description_parts.append(f"{offer.get('fullTitle', '')}")
+        elif field == 'unique_description':
+            description_parts.append(f"{company.description or ''}")
+        elif field == 'tags':
+            if company.tags != 'None':
+                print(type(company.tags))
+                description_parts.append(f"{company.tags or ''}")
+        elif field == 'promotion':
+            if company.promotion != 'None':
+                print(type(company.promotion))
+                description_parts.append(f"={company.promotion or ''}")
+    print(description_parts)
+    offer['supplier-description'] = "\n\n".join(description_parts)  # Join the parts into a single description
 
     return offer
 
 
-def process_xml(file_path):
+def process_xml(file_path, company):
     """Processes the XML file and returns a list of offers."""
     root = read_xml(file_path)
     offers = []
-
     for tires in root.findall('Tires'):
 
-        offer = process_tires(tires)
+        offer = process_tires(tires, company)
         offers.append(offer)
 
     return offers
@@ -167,6 +180,6 @@ def save_to_xml(offers, company_id):
         xml_file.write(xml_str.replace("><", ">\n<"))  # Добавляем переносы строк между элементами
 
 
-def unique(file_path, company_id):
-    offers = process_xml(file_path)
+def unique(file_path, company, company_id):
+    offers = process_xml(file_path, company)
     save_to_xml(offers, company_id)
